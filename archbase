@@ -5,8 +5,8 @@ set -euo pipefail
 ! command -v pacman && exit 1
 ! ping -c 1 archlinux.org && exit 1
 [[ ! -d "/sys/firmware/efi" ]] && exit 1
-! command -v fzf && { sudo pacman -S --noconfirm fzf || exit 1; }
 timedatectl set-ntp true
+! command -v fzf && { sudo pacman -S --noconfirm fzf || exit 1; }
 
 
 disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')"
@@ -75,7 +75,7 @@ mount -m "${disk}${disk_suffix}1" /mnt/boot
 
 
 reflector --latest 6 --sort rate --save /etc/pacman.d/mirrorlist
-pacstrap /mnt base base-devel linux-lts linux-firmware efibootmgr grub sudo NetworkManager "${microcode}"
+pacstrap /mnt base base-devel linux-lts linux-firmware efibootmgr grub sudo networkmanager "${microcode}"
 genfstab -U /mnt >> /mnt/etc/fstab
 
 
