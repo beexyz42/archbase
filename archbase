@@ -6,6 +6,7 @@ set -euo pipefail
 ! ping -c 1 archlinux.org && exit 1
 [[ ! -d "/sys/firmware/efi" ]] && exit 1
 ! command -v fzf && { sudo pacman -S --noconfirm fzf || exit 1; }
+timedatectl set-ntp true
 
 
 disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')"
