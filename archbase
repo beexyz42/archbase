@@ -74,7 +74,7 @@ mount "${disk}${disk_suffix}2" /mnt
 mount -m "${disk}${disk_suffix}1" /mnt/boot
 
 
-reflector --latest 6 --sort rate --save /etc/pacman.d/mirrorlist
+reflector --download-timeout 20 --latest 6 --sort rate --save /etc/pacman.d/mirrorlist
 pacstrap /mnt base base-devel linux-lts linux-firmware efibootmgr grub sudo networkmanager "${microcode}"
 genfstab -U /mnt >> /mnt/etc/fstab
 
