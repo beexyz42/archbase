@@ -9,6 +9,7 @@ timedatectl set-ntp true
 ! command -v fzf && { sudo pacman -S --noconfirm fzf || exit 1; }
 
 
+clear
 disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')"
 [[ -z "${disk}" ]] && exit 1
 [[ "${disk}" =~ "nvme" ]] && disk_suffix="p" || disk_suffix=""
@@ -22,6 +23,7 @@ while true; do
 done
 
 
+clear
 read -p "username: " username
 while [[ "${username}" =~ [^a-zA-Z0-9] || -z "${username}" ]]
 do
@@ -29,6 +31,7 @@ do
 done
 
 
+clear
 read -sep "password: " password
 read -sep "confirm password: " password_confirm
 while [[ "${password}" != "${password_confirm}" || -z "${password}" ]]
@@ -38,6 +41,7 @@ do
 done
 
 
+clear
 read -p "hostname: " hostname_
 while [[ "${hostname_}" =~ [^a-zA-Z0-9-] || -z "${hostname_}" ]]
 do
@@ -45,10 +49,12 @@ do
 done
 
 
+clear
 timezone="$(timedatectl list-timezones | fzf --reverse --query="$(timedatectl show -p Timezone --value)")"
 [[ -z "${timezone}" ]] && exit 1
 
 
+clear
 vendor_id="$(grep -m1 'vendor_id' "/proc/cpuinfo")"
 case "${vendor_id}" in
     *AuthenticAMD*) microcode="amd-ucode" ;;
