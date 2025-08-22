@@ -59,7 +59,6 @@ esac
 set -x
 
 
-umount -A --recursive /mnt
 sgdisk -Z "${disk}"
 sgdisk -a 2048 -o "${disk}"
 sgdisk -n 1::+1GiB --typecode=1:ef00 --change-name=1:"boot" "${disk}"
