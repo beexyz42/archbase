@@ -13,6 +13,7 @@ clear
 disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')"
 [[ -z "${disk}" ]] && exit 1
 [[ "${disk}" =~ "nvme" ]] && disk_suffix="p" || disk_suffix=""
+clear
 while true; do
     read -p "IRREVERSIBLY wipe '${disk}'? (y/n) " yn
     case "${yn}" in
