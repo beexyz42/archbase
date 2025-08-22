@@ -1,0 +1,119 @@
+#!/bin/bash
+set -euo pipefail
+
+
+! command -v pacman && exit 1
+! ping -c 1 archlinux.org && exit 1
+[[ ! -d "/sys/firmware/efi" ]] && exit 1
+! command -v fzf && { sudo pacman -S --noconfirm fzf || exit 1; }
+
+
+disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')"
+[[ -z "${disk}" ]] && exit 1
+[[ "${disk}" =~ "nvme" ]] && disk_suffix="p" || disk_suffix=""
+while true; do
+    read -p "IRREVERSIBLY wipe '${disk}'? (y/n) " yn
+    case "${yn}" in
+        [Yy]* ) break;;
+        [Nn]* ) exit;;
+        * ) # loop;;
+    esac
+done
+
+
+read -p "username: " username
+while [[ "${username}" =~ [^a-zA-Z0-9] || -z "${username}" ]]
+do
+    read -p "(invalid chars) username: " username
+done
+
+
+read -sep "password: " password
+read -sep "confirm password: " password_confirm
+while [[ "${password}" != "${password_confirm}" || -z "${password}" ]]
+do
+    read -sep "(retry) password: " password_
+    read -sep "confirm password: " password_confirm
+done
+
+
+read -p "hostname: " hostname_
+while [[ "${hostname_}" =~ [^a-zA-Z0-9-] || -z "${hostname_}" ]]
+do
+    read -p "(invalid chars) hostname: " hostname_
+done
+
+
+timezone="$(timedatectl list-timezones | fzf --reverse --query="$(timedatectl show -p Timezone --value)")"
+[[ -z "${timezone}" ]] && exit 1
+
+
+vendor_id="$(grep -m1 'vendor_id' "/proc/cpuinfo")"
+case "${vendor_id}" in
+    *AuthenticAMD*) microcode="amd-ucode" ;;
+    *GenuineIntel*) microcode="intel-ucode" ;;
+    *) exit 1 ;;
+esac
+
+
+set -x
+
+
+umount -A --recursive /mnt
+sgdisk -Z "${disk}"
+sgdisk -a 2048 -o "${disk}"
+sgdisk -n 1::+1GiB --typecode=1:ef00 --change-name=1:"boot" "${disk}"
+sgdisk -n 2::-0 --typecode=2:8300 --change-name=2:"root" "${disk}"
+
+
+mkfs.fat -F32 "${disk}${disk_suffix}1"
+mkfs.ext4 "${disk}${disk_suffix}2"
+
+
+mount "${disk}${disk_suffix}2" /mnt
+mount -m "${disk}${disk_suffix}1" /mnt/boot
+
+
+reflector --latest 6 --sort rate --save /etc/pacman.d/mirrorlist
+pacstrap /mnt base base-devel linux-lts linux-firmware efibootmgr grub sudo NetworkManager "${microcode}"
+genfstab -U /mnt >> /mnt/etc/fstab
+
+
+arch-chroot /mnt /bin/bash << EOF
+ln -sf "/usr/share/zoneinfo/${timezone}" "/etc/localtime"
+hwclock --systohc
+
+
+locale-gen
+printf "LANG=en_US.UTF-8" > "/etc/locale.conf"
+
+
+printf "${hostname_}" > "/etc/hostname"
+
+
+sed -i "s/^#ParallelDownloads/ParallelDownloads/" "/etc/pacman.conf"
+sed -i "s/^#Color/Color\nILoveCandy/" "/etc/pacman.conf"
+sed -i "s/^# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/" "/etc/sudoers"
+sed -i "s/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/" "/etc/sudoers"
+sed -i "/\[multilib\]/,/Include/ s/^#//" "/etc/pacman.conf"
+
+
+groupadd libvirt
+useradd -m -G wheel,libvirt -s /bin/bash "${username}"
+printf "${username}:${password}" | chpasswd
+
+
+grub-install --efi-directory=/boot "${disk}"
+grub-mkconfig -o /boot/grub/grub.cfg
+
+
+systemctl enable ntpd.service
+systemctl enable NetworkManager.service
+EOF
+
+
+umount -R /mnt
+reboot
+
+
+####
