@@ -87,6 +87,9 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 
 arch-chroot /mnt /bin/bash << EOF
+set -euo pipefail
+
+
 ln -sf "/usr/share/zoneinfo/${timezone}" "/etc/localtime"
 hwclock --systohc
 
