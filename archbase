@@ -37,7 +37,7 @@ read -sep "password: " password
 read -sep "confirm password: " password_confirm
 while [[ "${password}" != "${password_confirm}" || -z "${password}" ]]
 do
-    read -sep "(retry) password: " password_
+    read -sep "(retry) password: " password
     read -sep "confirm password: " password_confirm
 done
 
@@ -94,6 +94,7 @@ ln -sf "/usr/share/zoneinfo/${timezone}" "/etc/localtime"
 hwclock --systohc
 
 
+sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen
 printf "LANG=en_US.UTF-8" > "/etc/locale.conf"
 
@@ -113,7 +114,8 @@ useradd -m -G wheel,libvirt -s /bin/bash "${username}"
 printf "${username}:${password}" | chpasswd
 
 
-grub-install --efi-directory=/boot "${disk}"
+# grub-install --efi-directory=/boot "${disk}"
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
 
