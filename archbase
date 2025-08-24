@@ -9,7 +9,7 @@ timedatectl set-ntp true
 ! command -v fzf && { sudo pacman -S --noconfirm fzf || exit 1; }
 
 
-disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')"
+disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')" && clear
 [[ -z "${disk}" ]] && exit 1
 [[ "${disk}" =~ "nvme" ]] && disk_suffix="p" || disk_suffix=""
 while true; do
@@ -49,7 +49,7 @@ done
 clear
 
 
-timezone="$(timedatectl list-timezones | fzf --reverse --query="$(timedatectl show -p Timezone --value)")"
+timezone="$(timedatectl list-timezones | fzf --reverse --query="$(timedatectl show -p Timezone --value)")" && clear
 [[ -z "${timezone}" ]] && exit 1
 clear
 
