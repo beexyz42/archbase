@@ -9,11 +9,9 @@ timedatectl set-ntp true
 ! command -v fzf && { sudo pacman -S --noconfirm fzf || exit 1; }
 
 
-clear
 disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')"
 [[ -z "${disk}" ]] && exit 1
 [[ "${disk}" =~ "nvme" ]] && disk_suffix="p" || disk_suffix=""
-clear
 while true; do
     read -p "IRREVERSIBLY wipe '${disk}'? (y/n) " yn
     case "${yn}" in
@@ -22,17 +20,17 @@ while true; do
         * ) # loop;;
     esac
 done
-
-
 clear
+
+
 read -p "username: " username
 while [[ "${username}" =~ [^a-zA-Z0-9] || -z "${username}" ]]
 do
     read -p "(invalid chars) username: " username
 done
-
-
 clear
+
+
 read -sep "password: " password
 read -sep "confirm password: " password_confirm
 while [[ "${password}" != "${password_confirm}" || -z "${password}" ]]
@@ -40,22 +38,22 @@ do
     read -sep "(retry) password: " password
     read -sep "confirm password: " password_confirm
 done
-
-
 clear
+
+
 read -p "hostname: " hostname_
 while [[ "${hostname_}" =~ [^a-zA-Z0-9-] || -z "${hostname_}" ]]
 do
     read -p "(invalid chars) hostname: " hostname_
 done
-
-
 clear
+
+
 timezone="$(timedatectl list-timezones | fzf --reverse --query="$(timedatectl show -p Timezone --value)")"
 [[ -z "${timezone}" ]] && exit 1
-
-
 clear
+
+
 vendor_id="$(grep -m1 'vendor_id' "/proc/cpuinfo")"
 case "${vendor_id}" in
     *AuthenticAMD*) microcode="amd-ucode" ;;
@@ -114,7 +112,6 @@ useradd -m -G wheel,libvirt -s /bin/bash "${username}"
 printf "${username}:${password}" | chpasswd
 
 
-# grub-install --efi-directory=/boot "${disk}"
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
