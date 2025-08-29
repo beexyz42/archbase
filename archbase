@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -xeuo pipefail
 
 
 ! command -v pacman && exit 1
@@ -7,6 +7,9 @@ set -euo pipefail
 [[ ! -d "/sys/firmware/efi" ]] && exit 1
 timedatectl set-ntp true
 ! command -v fzf && { sudo pacman -S --noconfirm fzf || exit 1; }
+
+
+set +x
 
 
 disk="$(lsblk -ndo name,size | fzf --reverse | awk '{print "/dev/" $1}')" && clear
