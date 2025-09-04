@@ -2,29 +2,29 @@
 
 
 if [[ "$(id -u)" != "0" ]]; then
-    echo "script must be ran as root"
+    printf "%s\n" "script must be ran as root"
     exit 1
 fi
 if ! command -v pacman || ! command -v pacstrap; then
-    echo "script needs ran on a live arch iso"
+    printf "%s\n" "script needs ran on a live arch iso"
     exit 1
 fi
 if ! ping -c 1 archlinux.org; then
-    echo "script needs internet connection"
-    echo "use 'iwd' command for wifi"
+    printf "%s\n" "script needs internet connection"
+    printf "%s\n" "use 'iwd' command for wifi"
     exit 1
 fi
 if [[ ! -d "/sys/firmware/efi" ]]; then
-    echo "script needs to run on an uefi pc"
+    printf "%s\n" "script needs to run on an uefi pc"
     exit 1
 fi
 if ! timedatectl set-ntp true; then
-    echo "failed to set ntp to true"
+    printf "%s\n" "failed to set ntp to true"
     exit 1
 fi
 if [[ -f /var/lib/pacman/db.lck ]]; then
-    echo "pacman is blocked"
-    echo "remove '/var/lib/pacman/db.lck'"
+    printf "%s\n" "pacman is blocked"
+    printf "%s\n" "remove '/var/lib/pacman/db.lck'"
     exit 1
 fi
 
@@ -36,7 +36,7 @@ select script_disk in "${script_disks[@]}"; do
         export script_disk="${script_disk}"
         break
     else
-        echo "invalid selection"
+        printf "%s\n" "invalid selection"
     fi
 done
 if [[ "${script_disk}" =~ "nvme" ]]; then
@@ -85,7 +85,7 @@ export script_hostname="${script_hostname}"
 clear
 export script_timezone="$(curl -fs https://ipapi.co/timezone)"
 if [[ -z "${script_timezone}" ]]; then
-    echo "could not determine timezone"
+    printf "%s\n" "could not determine timezone"
     exit 1
 fi
 
@@ -104,7 +104,7 @@ vendor_id="$(grep -m1 'vendor_id' "/proc/cpuinfo")"
 case "${vendor_id}" in
     *AuthenticAMD*) export script_microcode="amd-ucode" ;;
     *GenuineIntel*) export script_microcode="intel-ucode" ;;
-    *) echo "could not determine microcode" && exit 1 ;;
+    *) printf "%s\n" "could not determine microcode" && exit 1 ;;
 esac
 pacstrap /mnt base base-devel linux-lts linux-firmware efibootmgr grub sudo networkmanager bash-completion nano "${script_microcode}"
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -120,7 +120,7 @@ locale-gen
 printf "LANG=en_US.UTF-8" > "/etc/locale.conf"
 
 
-echo "${script_hostname}" > "/etc/hostname"
+printf "%s\n" "${script_hostname}" > "/etc/hostname"
 
 
 sed -i "s/^#ParallelDownloads/ParallelDownloads/" "/etc/pacman.conf"
@@ -132,7 +132,7 @@ sed -i "/\[multilib\]/,/Include/ s/^#//" "/etc/pacman.conf"
 
 groupadd libvirt
 useradd -m -G wheel,libvirt -s /bin/bash "${script_username}"
-echo "${script_username}:${script_password}" | chpasswd
+printf "%s\n" "${script_username}:${script_password}" | chpasswd
 
 
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
