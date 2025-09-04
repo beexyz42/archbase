@@ -27,6 +27,7 @@ if [[ -f /var/lib/pacman/db.lck ]]; then
     printf "%s\n" "remove '/var/lib/pacman/db.lck'"
     exit 1
 fi
+clear
 
 
 PS3="select a disk: "
@@ -60,6 +61,7 @@ mkfs.fat -F32 "${script_disk}${script_disk_suffix}1"
 mkfs.ext4 "${script_disk}${script_disk_suffix}2"
 mount "${script_disk}${script_disk_suffix}2" /mnt
 mount -m "${script_disk}${script_disk_suffix}1" /mnt/boot
+clear
 
 
 read -p "username: " script_username
@@ -88,6 +90,7 @@ if [[ -z "${script_timezone}" ]]; then
     printf "%s\n" "could not determine timezone"
     exit 1
 fi
+clear
 
 
 sed -i 's/^#ParallelDownloads/ParallelDownloads/' /etc/pacman.conf
@@ -96,7 +99,16 @@ pacman -S --noconfirm archlinux-keyring
 pacman -S --noconfirm --needed pacman-contrib terminus-font reflector
 setfont ter-v18b
 country_code="$(curl -s -4 ifconfig.io/country_code)"
-reflector -c "${country_code}" -p https --age 60 -l 20 -s rate --verbose --save /etc/pacman.d/mirrorlist
+reflector_options=(
+    -c "${country_code}"
+    -p https
+    --age 60
+    -l 20
+    -s rate
+    --verbose
+    --save /etc/pacman.d/mirrorlist
+)
+reflector "${reflector_options[@]}"
 if [ ! -d "/mnt" ]; then
     mkdir /mnt
 fi
@@ -106,7 +118,20 @@ case "${vendor_id}" in
     *GenuineIntel*) export script_microcode="intel-ucode" ;;
     *) printf "%s\n" "could not determine microcode" && exit 1 ;;
 esac
-pacstrap /mnt base base-devel linux-lts linux-firmware efibootmgr grub sudo networkmanager bash-completion nano "${script_microcode}"
+pacstrap_packages=(
+    base
+    base-devel
+    linux-lts
+    linux-firmware
+    efibootmgr
+    grub
+    sudo
+    networkmanager
+    bash-completion
+    nano
+    "${script_microcode}"
+)
+pacstrap /mnt "${pacstrap_packages[@]}"
 genfstab -U /mnt >> /mnt/etc/fstab
 
 
@@ -139,9 +164,7 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
 
-systemctl enable ntpd.service
 systemctl enable NetworkManager.service
-systemctl enable reflector.timer
 EOF
 
 
