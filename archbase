@@ -1,0 +1,152 @@
+#!/bin/bash
+
+
+if [[ "$(id -u)" != "0" ]]; then
+    echo "script must be ran as root"
+    exit 1
+fi
+if ! command -v pacman || ! command -v pacstrap; then
+    echo "script needs ran on a live arch iso"
+    exit 1
+fi
+if ! ping -c 1 archlinux.org; then
+    echo "script needs internet connection"
+    echo "use 'iwd' command for wifi"
+    exit 1
+fi
+if [[ ! -d "/sys/firmware/efi" ]]; then
+    echo "script needs to run on an uefi pc"
+    exit 1
+fi
+if ! timedatectl set-ntp true; then
+    echo "failed to set ntp to true"
+    exit 1
+fi
+if [[ -f /var/lib/pacman/db.lck ]]; then
+    echo "pacman is blocked"
+    echo "remove '/var/lib/pacman/db.lck'"
+    exit 1
+fi
+
+
+PS3="select a disk: "
+readarray -t script_disks < <(lsblk -ndo path)
+select script_disk in "${script_disks[@]}"; do
+    if [[ -n "${script_disk}" ]]; then
+        export script_disk="${script_disk}"
+        break
+    else
+        echo "invalid selection"
+    fi
+done
+if [[ "${script_disk}" =~ "nvme" ]]; then
+    script_disk_suffix="p"
+else
+    script_disk_suffix=""
+fi
+while true; do
+    read -p "IRREVERSIBLY wipe '${script_disk}'? (y/n) " yn
+    case "${yn}" in
+        [Yy]* ) break ;;
+        [Nn]* ) exit 1 ;;
+        * ) # loop;;
+    esac
+done
+sgdisk -Z "${script_disk}"
+sgdisk -a 2048 -o "${script_disk}"
+sgdisk -n 1::+1GiB --typecode=1:ef00 --change-name=1:"boot" "${script_disk}"
+sgdisk -n 2::-0 --typecode=2:8300 --change-name=2:"root" "${script_disk}"
+mkfs.fat -F32 "${script_disk}${script_disk_suffix}1"
+mkfs.ext4 "${script_disk}${script_disk_suffix}2"
+mount "${script_disk}${script_disk_suffix}2" /mnt
+mount -m "${script_disk}${script_disk_suffix}1" /mnt/boot
+
+
+read -p "username: " script_username
+while [[ "${script_username}" =~ [^a-zA-Z0-9] || -z "${script_username}" ]]; do
+    read -p "(invalid) username: " script_username
+done
+export script_username="${script_username}"
+clear
+read -sep "password: " script_password
+read -sep "confirm password: " script_password_confirm
+while [[ "${script_password}" != "${script_password_confirm}" || -z "${script_password}" ]]; do
+    read -sep "(retry) password: " script_password
+    read -sep "confirm password: " script_password_confirm
+done
+export script_password="${script_password}"
+clear
+read -p "hostname: " script_hostname
+while [[ "${script_hostname}" =~ [^a-zA-Z0-9-] || -z "${script_hostname}" ]]
+do
+    read -p "(invalid) hostname: " script_hostname
+done
+export script_hostname="${script_hostname}"
+clear
+export script_timezone="$(curl -fs https://ipapi.co/timezone)"
+if [[ -z "${script_timezone}" ]]; then
+    echo "could not determine timezone"
+    exit 1
+fi
+
+
+sed -i 's/^#ParallelDownloads/ParallelDownloads/' /etc/pacman.conf
+pacman -Sy
+pacman -S --noconfirm archlinux-keyring
+pacman -S --noconfirm --needed pacman-contrib terminus-font reflector
+setfont ter-v18b
+country_code="$(curl -s -4 ifconfig.io/country_code)"
+reflector -c "${country_code}" -p https --age 60 -l 20 -s rate --verbose --save /etc/pacman.d/mirrorlist
+if [ ! -d "/mnt" ]; then
+    mkdir /mnt
+fi
+vendor_id="$(grep -m1 'vendor_id' "/proc/cpuinfo")"
+case "${vendor_id}" in
+    *AuthenticAMD*) export script_microcode="amd-ucode" ;;
+    *GenuineIntel*) export script_microcode="intel-ucode" ;;
+    *) echo "could not determine microcode" && exit 1 ;;
+esac
+pacstrap /mnt base base-devel linux-lts linux-firmware efibootmgr grub sudo networkmanager bash-completion nano "${script_microcode}"
+genfstab -U /mnt >> /mnt/etc/fstab
+
+
+arch-chroot /mnt /bin/bash << EOF
+ln -sf "/usr/share/zoneinfo/${script_timezone}" "/etc/localtime"
+hwclock --systohc
+
+
+sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+locale-gen
+printf "LANG=en_US.UTF-8" > "/etc/locale.conf"
+
+
+echo "${script_hostname}" > "/etc/hostname"
+
+
+sed -i "s/^#ParallelDownloads/ParallelDownloads/" "/etc/pacman.conf"
+sed -i "s/^#Color/Color\nILoveCandy/" "/etc/pacman.conf"
+sed -i "s/^# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/" "/etc/sudoers"
+sed -i "s/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/" "/etc/sudoers"
+sed -i "/\[multilib\]/,/Include/ s/^#//" "/etc/pacman.conf"
+
+
+groupadd libvirt
+useradd -m -G wheel,libvirt -s /bin/bash "${script_username}"
+echo "${script_username}:${script_password}" | chpasswd
+
+
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+grub-mkconfig -o /boot/grub/grub.cfg
+
+
+systemctl enable ntpd.service
+systemctl enable NetworkManager.service
+systemctl enable reflector.timer
+EOF
+
+
+umount -R /mnt
+reboot
+
+
+####
