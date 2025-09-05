@@ -62,7 +62,7 @@ mkfs.fat -F32 "${script_disk}${script_disk_suffix}1"
 mkfs.ext4 "${script_disk}${script_disk_suffix}2"
 mount "${script_disk}${script_disk_suffix}2" /mnt
 mkdir -p /mnt/boot
-mount -m "${script_disk}${script_disk_suffix}1" /mnt/boot
+mount "${script_disk}${script_disk_suffix}1" /mnt/boot
 clear
 
 
