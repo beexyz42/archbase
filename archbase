@@ -126,6 +126,7 @@ pacstrap_packages=(
     base-devel
     bash-completion
     efibootmgr
+    git
     grub
     linux-firmware
     linux-lts
@@ -138,6 +139,11 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 
 arch-chroot /mnt /bin/bash << EOF
+
+
+git clone https://github.com/beexyz42/archbase
+
+
 ln -sf "/usr/share/zoneinfo/${script_timezone}" "/etc/localtime"
 hwclock --systohc
 
