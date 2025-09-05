@@ -135,7 +135,7 @@ pacstrap_packages=(
     sudo
 )
 pacstrap /mnt "${pacstrap_packages[@]}"
-genfstab -U /mnt >> /mnt/etc/fstab
+genfstab -U /mnt > /mnt/etc/fstab
 
 
 arch-chroot /mnt /bin/bash << EOF
