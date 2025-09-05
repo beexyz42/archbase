@@ -1,0 +1,75 @@
+#!/bin/bash
+set -eu
+
+
+return_folder="$(pwd)"
+cd "${return_folder}"
+
+
+background_check() {
+    if ! command -v pacman; then
+        echo "script needs arch linux"
+        exit 1
+    fi
+    if [[ ! -f "packages-pacman" ]]; then
+        echo "script needs 'packages-pacman' file"
+        exit 1
+    fi
+    if [[ ! -f "packages-aur" ]]; then
+        echo "script needs 'packages-aur' file"
+        exit 1
+    fi
+    if [[ ! -f "packages-flatpak" ]]; then
+        echo "script needs 'packages-flatpak' file"
+        exit 1
+    fi
+    if [[ ! -f "xinitrc" ]]; then
+        echo "script needs 'xinitrc' file"
+        exit 1
+    fi
+}
+
+
+update_arch() {
+    sudo pacman -Syu --noconfirm
+}
+
+
+install_pacman_packages() {
+    sudo pacman -S --needed --noconfirm - < "packages-pacman"
+}
+
+
+install_aur_packages() {
+    if ! command -v yay; then
+        sudo pacman -S --needed --noconfirm git base-devel
+        cd /tmp
+        git clone https://aur.archlinux.org/yay-bin.git
+        cd yay-bin
+        makepkg -si
+        cd "${return_folder}"
+    fi
+    yay -S --needed --noconfirm - < "packages-aur"
+}
+
+
+install_flatpak_packages() {
+    sudo pacman -S --needed --noconfirm flatpak
+    xargs -a "packages-flatpak" flatpak install --noninteractive
+}
+
+
+copy_xinitrc() {
+    cp "xinitrc" "${HOME}/.xinitrc"
+}
+
+
+background_check
+update_arch
+install_pacman_packges
+install_aur_packages
+install_flatpak_packages
+copy_xinitrc
+
+
+####
