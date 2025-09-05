@@ -119,17 +119,17 @@ case "${vendor_id}" in
     *) printf "%s\n" "could not determine microcode" && exit 1 ;;
 esac
 pacstrap_packages=(
+    "${script_microcode}"
     base
     base-devel
-    linux-lts
-    linux-firmware
+    bash-completion
     efibootmgr
     grub
-    sudo
-    networkmanager
-    bash-completion
+    linux-firmware
+    linux-lts
     nano
-    "${script_microcode}"
+    networkmanager
+    sudo
 )
 pacstrap /mnt "${pacstrap_packages[@]}"
 genfstab -U /mnt >> /mnt/etc/fstab
