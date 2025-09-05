@@ -150,10 +150,10 @@ hwclock --systohc
 
 sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen
-printf "LANG=en_US.UTF-8" > "/etc/locale.conf"
+echo "LANG=en_US.UTF-8" > "/etc/locale.conf"
 
 
-printf "%s\n" "${script_hostname}" > "/etc/hostname"
+echo "${script_hostname}" > "/etc/hostname"
 
 
 sed -i "s/^#ParallelDownloads/ParallelDownloads/" "/etc/pacman.conf"
@@ -165,7 +165,8 @@ sed -i "/\[multilib\]/,/Include/ s/^#//" "/etc/pacman.conf"
 
 groupadd libvirt
 useradd -m -G wheel,libvirt -s /bin/bash "${script_username}"
-printf "%s\n" "${script_username}:${script_password}" | chpasswd
+echo "${script_username}:${script_password}" | chpasswd
+echo "root:${script_password}" | chpasswd
 
 
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
