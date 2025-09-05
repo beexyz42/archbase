@@ -8,9 +8,9 @@ dunst
 easyeffects
 fastfetch
 ffmpeg
+ffmpegthumbnailer
 flac
 flatpak
-ffmpegthumbnailer
 git
 gvfs
 mpc
@@ -22,6 +22,7 @@ noto-fonts
 opus-tools
 orchis-theme
 papirus-icon-theme
+picom
 pipewire
 pipewire-alsa
 pipewire-jack
